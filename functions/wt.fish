@@ -55,15 +55,85 @@ function wt
 
         case rm
             set -l force 0
+            set -l all 0
             set -l idx ""
 
             for arg in $argv[2..]
                 switch $arg
                     case --force -f
                         set force 1
+                    case --all -a
+                        set all 1
                     case '*'
                         set idx $arg
                 end
+            end
+
+            if test $all -eq 1
+                __wt_list
+
+                if test (count $__wt_dirs) -eq 0
+                    echo "No worktrees to remove."
+                    return 0
+                end
+
+                if test $force -eq 0
+                    echo "This will remove the following worktrees:"
+                    for i in (seq (count $__wt_dirs))
+                        echo "  $i) $__wt_branches[$i]  ($__wt_dirs[$i])"
+                    end
+                    read -P "Continue? [y/N] " confirm
+                    if not string match -qi "y" "$confirm"
+                        echo "Aborted."
+                        return 1
+                    end
+                end
+
+                set -l orig_dir (pwd)
+                set -l was_inside 0
+                for dir in $__wt_dirs
+                    if string match -q "$dir*" (pwd)
+                        set was_inside 1
+                        cd $__wt_main
+                        break
+                    end
+                end
+
+                set -l failed 0
+                for i in (seq (count $__wt_dirs) -1 1)
+                    set -l dir $__wt_dirs[$i]
+                    set -l branch $__wt_branches[$i]
+
+                    if test $force -eq 1
+                        git -C $__wt_main worktree remove --force $dir
+                    else
+                        git -C $__wt_main worktree remove $dir
+                    end
+
+                    if test $status -ne 0
+                        echo "Failed to remove worktree: $branch ($dir)"
+                        set failed (math $failed + 1)
+                        continue
+                    end
+
+                    if test $force -eq 1
+                        git -C $__wt_main branch -D $branch 2>/dev/null
+                    else
+                        git -C $__wt_main branch -d $branch 2>/dev/null
+                    end
+
+                    echo "Removed worktree: $branch"
+                end
+
+                if test $failed -gt 0
+                    echo "$failed worktree(s) failed to remove."
+                    if test $was_inside -eq 1
+                        cd $orig_dir
+                    end
+                    return 1
+                end
+
+                return 0
             end
 
             if test -z "$idx"
@@ -118,5 +188,6 @@ function wt
             echo "  new <branch> [base]       Create a worktree"
             echo "  ls                        List worktrees"
             echo "  rm [--force] <number>     Remove a worktree by index"
+            echo "  rm --all [--force]        Remove all worktrees"
     end
 end
