@@ -83,15 +83,29 @@ function wt
             set -l dir $__wt_dirs[$idx]
             set -l branch $__wt_branches[$idx]
 
+            set -l was_inside 0
+            set -l orig_dir (pwd)
             if string match -q "$dir*" (pwd)
+                set was_inside 1
                 cd $__wt_main
             end
 
             if test $force -eq 1
                 git -C $__wt_main worktree remove --force $dir
-                git -C $__wt_main branch -D $branch 2>/dev/null
             else
                 git -C $__wt_main worktree remove $dir
+            end
+
+            if test $status -ne 0
+                if test $was_inside -eq 1
+                    cd $orig_dir
+                end
+                return 1
+            end
+
+            if test $force -eq 1
+                git -C $__wt_main branch -D $branch 2>/dev/null
+            else
                 git -C $__wt_main branch -d $branch 2>/dev/null
             end
 
