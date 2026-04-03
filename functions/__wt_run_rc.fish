@@ -32,6 +32,19 @@ function __wt_run_rc --argument-names main_dir worktree_dir
                 else
                     echo "  Failed: $value"
                 end
+            case submodule
+                if test "$value" = all
+                    echo "  Initializing all submodules..."
+                    git submodule update --init --recursive
+                else
+                    echo "  Initializing submodule: $value"
+                    git submodule update --init $value
+                end
+                if test $status -eq 0
+                    echo "  Done: submodule $value"
+                else
+                    echo "  Failed: submodule $value"
+                end
         end
     end <$rc
     popd
