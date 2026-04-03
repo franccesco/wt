@@ -25,6 +25,10 @@ When inside tmux, `wt new` opens a new window in the worktree directory. Otherwi
 Drop a `.wtrc` file in your repo root to define what happens after creating a worktree:
 
 ```
+# Initialize git submodules
+submodule all               # all submodules
+submodule lib/foo           # or specific ones by path
+
 # Symlink files from the main worktree
 link .envrc
 link .mcp.json
@@ -39,6 +43,8 @@ run direnv allow
 
 | Directive | Description |
 |-----------|-------------|
+| `submodule all` | Initialize all git submodules recursively |
+| `submodule <path>` | Initialize a specific git submodule by path |
 | `link <file>` | Symlink a file from the main worktree |
 | `run <command>` | Run a shell command in the new worktree |
 
